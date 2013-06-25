@@ -4,6 +4,8 @@
     review code
 */
 
+#define _XOPEN_SOURCE 500
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <errno.h>
@@ -49,7 +51,8 @@ typedef struct {
     f->tailable = 0;\
     f->err = 0
 
-static const uint32_t inotify_wd_mask = (IN_MODIFY | IN_ATTRIB | IN_DELETE_SELF | IN_MOVE_SELF);
+static const uint32_t inotify_wd_mask = (IN_MODIFY | IN_ATTRIB 
+        | IN_DELETE_SELF | IN_MOVE_SELF);
 static const uint32_t inotify_pwd_mask = (IN_CREATE | IN_MOVED_TO | IN_ATTRIB);
 static int show_help = 0;
 static int log_level = LOG_INFO;
@@ -62,7 +65,8 @@ static int check_fspec(file_spec_t *f);
 static int dump_remainder(file_spec_t *f);
 static int write_stdout(const char *buf, size_t size);
 static int recheck(file_spec_t *f);
-static void record_open_fd(file_spec_t *f, int fd, off_t size, struct stat const *st);
+static void record_open_fd(file_spec_t *f, int fd, off_t size, 
+        struct stat const *st);
 static int dump_pos(file_spec_t *f, char *buf, size_t size);
 static int get_options(int argc, char * const*argv);
 static void log_info(const char *fmt, ...);
@@ -95,7 +99,8 @@ static void
 tail_forever_inotify(const char *tail_file, const char *pos_file)
 {
     int                     wd, fwd, tfwd, pwd, max_realloc;
-    char                    prev, *p, posbuf[UINT64_LEN + 1], *evbuf, *evp, *name, *pos_name;
+    char                    prev, *p, posbuf[UINT64_LEN + 1], *evbuf, *evp, 
+                            *name, *pos_name;
     size_t                  fnlen, dirlen, evlen;
     ssize_t                 poslen, evbuf_off, len;
     struct                  stat stats;
@@ -213,7 +218,8 @@ tail_forever_inotify(const char *tail_file, const char *pos_file)
         }
     }
 
-    // new data can be available since last time we checked before watched by inotify
+    // new data can be available since last time we checked before watched 
+    // by inotify
     if(check_fspec(f) == -1) {
         log_info("check_fspec() failed\n"); 
         goto free;
@@ -232,7 +238,9 @@ tail_forever_inotify(const char *tail_file, const char *pos_file)
         if(len <= evbuf_off) {
             evbuf_off = 0;
             len = read(wd, evbuf, evlen);
-            if((len == 0 || (len < 0 && errno == EINVAL)) && (max_realloc--)) {
+            if((len == 0 || (len < 0 && errno == EINVAL)) 
+                    && (max_realloc--)) 
+            {
                 len = 0;
                 evlen *= 2;
                 evbuf = realloc (evbuf, evlen);
