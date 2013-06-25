@@ -59,7 +59,7 @@ static char *tail_file = NULL;
 
 static int64_t str_to_int64(char *p);
 static int check_fspec(file_spec_t *f);
-static ssize_t dump_remainder(file_spec_t *f);
+static int dump_remainder(file_spec_t *f);
 static int write_stdout(const char *buf, size_t size);
 static int recheck(file_spec_t *f);
 static void record_open_fd(file_spec_t *f, int fd, off_t size, struct stat const *st);
@@ -93,7 +93,7 @@ int main(int argc, char * const *argv)
 
 static void
 tail_forever_inotify(const char *tail_file, const char *pos_file)
-{/*{{{*/
+{
     int                     wd, fwd, tfwd, pwd, max_realloc;
     char                    prev, *p, posbuf[UINT64_LEN + 1], *evbuf, *evp, *name, *pos_name;
     size_t                  fnlen, dirlen, evlen;
@@ -347,11 +347,11 @@ free:
         (void) close(f->pfd);
         f->pfd = -1;
     }
-}/*}}}*/
+}
 
 static int64_t
 str_to_int64(char *p)
-{/*{{{*/
+{
     int64_t i;
 
     i = 0;
@@ -360,15 +360,12 @@ str_to_int64(char *p)
     }
 
     return i;
-} /*}}}*/
+} 
 
 static int
 check_fspec(file_spec_t *f)
-{/*{{{*/
+{
     struct stat stats;
-    char        buf[UINT64_LEN + 2];
-    int         len;
-    ssize_t     size;
 
     if(fstat(f->fd, &stats) != 0) {
         f->err = errno;
@@ -396,24 +393,18 @@ check_fspec(file_spec_t *f)
         log_info("dump_remainer() failed\n");
         return -1;
     }
-    // read file
-    f->size += size;
-    // flush to stdout
-    if(fflush(stdout) != 0) {
-        log_info("fflush() failed (%s)\n", strerror(errno));
-        return -1;
-    }
 
     return 0;
-}/*}}}*/
+}
 
-static ssize_t
+static int
 dump_remainder(file_spec_t *f)
-{/*{{{*/
-    ssize_t writes, reads;
+{
+    ssize_t reads;
     char    buffer[BUFSIZ];
+    char    buf[UINT64_LEN + 2];
+    int     len;
 
-    writes = 0;
     for( ;; ) {
         reads = read(f->fd, buffer, BUFSIZ);
         if(reads == - 1) {
@@ -429,7 +420,7 @@ dump_remainder(file_spec_t *f)
             break; 
         }
 
-        writes += (ssize_t) reads;
+        f->size += reads;
         if(write_stdout(buffer, (size_t) reads) == -1) {
             log_info("write_stdout failed\n");
             return -1;
@@ -453,26 +444,31 @@ dump_remainder(file_spec_t *f)
 
         // reset times
         f->times = 0;
-
     }
 
-    return writes; 
-}/*}}}*/
+    // flush to stdout
+    if(fflush(stdout) != 0) {
+        log_info("fflush() failed (%s)\n", strerror(errno));
+        return -1;
+    }
+
+    return 0;
+}
 
 static int
 write_stdout(const char *buf, size_t size)
-{/*{{{*/
+{
     if(size > 0 && fwrite(buf, 1, size, stdout) == 0) {
         log_info("fwrite() failed (%s)\n", strerror(errno));
         return -1;
     }
 
     return 0;
-}/*}}}*/
+}
 
 static int
 recheck(file_spec_t *f)
-{/*{{{*/
+{
     int        ok, was_tailable, new_file;
     int         fd, prev_err;
     struct stat new_stats;
@@ -554,11 +550,11 @@ recheck(file_spec_t *f)
     }
 
     return 0;
-}/*}}}*/
+}
 
 static void
 record_open_fd(file_spec_t *f, int fd, off_t size, struct stat const *st)
-{/*{{{*/
+{
     f->fd = fd;
     f->size = size;
     f->mtime = st->st_mtime;
@@ -566,22 +562,22 @@ record_open_fd(file_spec_t *f, int fd, off_t size, struct stat const *st)
     f->ino = st->st_ino;
     f->mode = st->st_mode;
     f->ignore = 0;
-}/*}}}*/
+}
 
 static int
 dump_pos(file_spec_t *f, char *buf, size_t size)
-{/*{{{*/
+{
     if(pwrite(f->pfd, buf, size, 0) < 0) {
         log_info("pwrite() failed (%s)\n", strerror(errno));
         return -1;
     }
 
     return 0;
-}/*}}}*/
+}
 
 static int 
 get_options(int argc, char * const*argv)
-{/*{{{*/
+{
     char   *p;
     int     i;
 
@@ -650,11 +646,11 @@ next:
     }
 
     return 0;
-}/*}}}*/
+}
 
 static void 
 log_info(const char *fmt, ...)
-{/*{{{*/
+{
     va_list args;
 
     if(log_level < LOG_INFO) {
@@ -664,11 +660,11 @@ log_info(const char *fmt, ...)
     va_start(args, fmt);
     (void) vfprintf(stderr, fmt, args);
     va_end(args);
-}/*}}}*/
+}
 
 static void 
 log_debug(const char *fmt, ...)
-{/*{{{*/
+{
     va_list args;
 
     if(log_level < LOG_DEBUG) {
@@ -678,4 +674,4 @@ log_debug(const char *fmt, ...)
     va_start(args, fmt);
     (void) vfprintf(stderr, fmt, args);
     va_end(args);
-}/*}}}*/
+}
