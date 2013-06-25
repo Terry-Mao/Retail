@@ -59,7 +59,7 @@ static char *tail_file = NULL;
 
 static int64_t str_to_int64(char *p);
 static int check_fspec(file_spec_t *f);
-static ssize_t dump_remainder(int fd);
+static ssize_t dump_remainder(file_spec_t *f);
 static int write_stdout(const char *buf, size_t size);
 static int recheck(file_spec_t *f);
 static void record_open_fd(file_spec_t *f, int fd, off_t size, struct stat const *st);
@@ -392,7 +392,7 @@ check_fspec(file_spec_t *f)
         log_debug("file nochange\n");
     }
 
-    if((size = dump_remainder(f->fd)) == -1) {
+    if((size = dump_remainder(f)) == -1) {
         log_info("dump_remainer() failed\n");
         return -1;
     }
@@ -404,37 +404,18 @@ check_fspec(file_spec_t *f)
         return -1;
     }
 
-    // flush pos
-    if(f->times++ < flush_times) {
-        log_debug("times : %d, flush_times : %d\n", f->times, flush_times);
-        return 0;
-    }
-
-    if((len = sprintf(buf, "%ld\n", f->size)) < 0) {
-        log_info("sprintf() failed (%s)\n", strerror(errno));
-        return -1;
-    }
-
-    if(dump_pos(f, buf, len) == -1) {
-        log_info("dump_pos() failed\n");
-        return -1;
-    }
-
-    // reset times
-    f->times = 0;
-
     return 0;
 }/*}}}*/
 
 static ssize_t
-dump_remainder(int fd)
+dump_remainder(file_spec_t *f)
 {/*{{{*/
     ssize_t writes, reads;
     char    buffer[BUFSIZ];
 
     writes = 0;
     for( ;; ) {
-        reads = read(fd, buffer, BUFSIZ);
+        reads = read(f->fd, buffer, BUFSIZ);
         if(reads == - 1) {
             if(errno == EINTR) {
                 continue;
@@ -453,6 +434,26 @@ dump_remainder(int fd)
             log_info("write_stdout failed\n");
             return -1;
         }
+
+        // flush pos
+        if(f->times++ < flush_times) {
+            log_debug("times : %d, flush_times : %d\n", f->times, flush_times);
+            continue;
+        }
+
+        if((len = sprintf(buf, "%ld\n", f->size)) < 0) {
+            log_info("sprintf() failed (%s)\n", strerror(errno));
+            return -1;
+        }
+
+        if(dump_pos(f, buf, len) == -1) {
+            log_info("dump_pos() failed\n");
+            return -1;
+        }
+
+        // reset times
+        f->times = 0;
+
     }
 
     return writes; 

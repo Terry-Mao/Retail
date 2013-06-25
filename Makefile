@@ -6,11 +6,11 @@ CORE_INCS = -I ./
 
 default: main
 main: objs/tail.o
-	/bin/mkdir -p objs/
 	$(LINK) -o tail objs/tail.o
 
 clean:
-	/bin/rm objs/tail.o
+	-/bin/rm objs/tail.o
 
 objs/tail.o: tail.c                                                              
+	-/bin/mkdir -p objs/
 	$(CC) -c $(CFLAGS) $(CORE_INCS) -o objs/tail.o tail.c
