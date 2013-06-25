@@ -389,7 +389,7 @@ check_fspec(file_spec_t *f)
         log_debug("file nochange\n");
     }
 
-    if((size = dump_remainder(f)) == -1) {
+    if(dump_remainder(f) == -1) {
         log_info("dump_remainer() failed\n");
         return -1;
     }
