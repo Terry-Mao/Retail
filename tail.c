@@ -61,7 +61,7 @@ static int  flush_times = 50;
 static char *pos_file = NULL;
 static char *tail_file = NULL;
 static char *log_file = NULL;
-static FILE *log = stderr;
+static FILE *log = NULL;
 
 static int64_t str_to_int64(char *p);
 static int check_fspec(file_spec_t *f);
@@ -97,13 +97,15 @@ int main(int argc, char * const *argv)
 
     // open log
     if(log_file != NULL) {
-        log = fopen(log_file, "w"); 
+        log = fopen(log_file, "a"); 
         if(log == NULL) {
             log = stderr;
             log_info("open log \"%s\" failed, use stderr instead (%s)", 
                     strerror(errno));
-        }
-    }
+        }   
+    } else {
+        log = stderr;
+    }   
 
     // tail file
     tail_forever_inotify(tail_file, pos_file);
@@ -661,7 +663,7 @@ get_options(int argc, char * const*argv)
                 case 'l':
                     if(*p) {
                         log_file = argv[i]; 
-                        goto next
+                        goto next;
                     }
 
                     if(argv[++i]) {
@@ -692,7 +694,10 @@ log_info(const char *fmt, ...)
     }
 
     va_start(args, fmt);
-    (void) vfprintf(stderr, fmt, args);
+    if(vfprintf(log, fmt, args) >= 0) {
+        (void) fflush(log);
+    }
+
     va_end(args);
 }
 
@@ -706,6 +711,9 @@ log_debug(const char *fmt, ...)
     }
 
     va_start(args, fmt);
-    (void) vfprintf(stderr, fmt, args);
+    if(vfprintf(log, fmt, args) >= 0) {
+        (void) fflush(log);
+    }
+
     va_end(args);
 }
