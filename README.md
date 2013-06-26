@@ -16,8 +16,8 @@ sh> make
 
 ```
 # for help
-./tail -h 
+sh> ./tail -h 
 
 # tail a file
-./tail -f ./1.txt -p ./1.txt -s 1 -d
+sh> ./tail -f ./1.txt -p ./1.txt -s 1 -d
 ```
