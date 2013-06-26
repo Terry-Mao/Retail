@@ -82,6 +82,7 @@ int main(int argc, char * const *argv)
         return -1;
     }
 
+    log = stderr;
     if(show_help) {
         log_info(
         "usage : \n"
@@ -103,8 +104,6 @@ int main(int argc, char * const *argv)
             log_info("open log \"%s\" failed, use stderr instead (%s)", 
                     strerror(errno));
         }   
-    } else {
-        log = stderr;
     }   
 
     // tail file
