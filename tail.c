@@ -54,11 +54,14 @@ typedef struct {
 static const uint32_t inotify_wd_mask = (IN_MODIFY | IN_ATTRIB 
         | IN_DELETE_SELF | IN_MOVE_SELF);
 static const uint32_t inotify_pwd_mask = (IN_CREATE | IN_MOVED_TO | IN_ATTRIB);
-static int show_help = 0;
-static int log_level = LOG_INFO;
-static int flush_times = 50;
+
+static int  show_help = 0;
+static int  log_level = LOG_INFO;
+static int  flush_times = 50;
 static char *pos_file = NULL;
 static char *tail_file = NULL;
+static char *log_file = NULL;
+static FILE *log = stderr;
 
 static int64_t str_to_int64(char *p);
 static int check_fspec(file_spec_t *f);
@@ -87,10 +90,22 @@ int main(int argc, char * const *argv)
         "         -p set pos file\n"
         "         -d set debug flag\n"
         "         -s set save pos file times\n"
+        "         -l set log file name\n"
         );
         return 0;
     }
 
+    // open log
+    if(log_file != NULL) {
+        log = fopen(log_file, "w"); 
+        if(log == NULL) {
+            log = stderr;
+            log_info("open log \"%s\" failed, use stderr instead (%s)", 
+                    strerror(errno));
+        }
+    }
+
+    // tail file
     tail_forever_inotify(tail_file, pos_file);
     return -1;
 }
@@ -634,12 +649,23 @@ get_options(int argc, char * const*argv)
 
                 case 's':
                     if(*p) {
-                        flush_times=(int) str_to_int64(argv[i]);
+                        flush_times =(int) str_to_int64(argv[i]);
                         goto next;
                     }
 
                     if(argv[++i]) {
-                        flush_times=(int) str_to_int64(argv[i]);
+                        flush_times =(int) str_to_int64(argv[i]);
+                        goto next;
+                    }
+                    
+                case 'l':
+                    if(*p) {
+                        log_file = argv[i]; 
+                        goto next
+                    }
+
+                    if(argv[++i]) {
+                        log_file = argv[i];
                         goto next;
                     }
 
